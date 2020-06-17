@@ -23,7 +23,7 @@ def index():
 def handle_connect_request(json):
     print('received message: ' + str(json))
     id = players.addPlayer().id
-    print(players.cur_ids())
+    # print(players.cur_ids())
     emit('id', {'id':id})
 
 @socketio.on('disconnect')
@@ -36,7 +36,7 @@ def test_disconnect():
 def test_disconnect(data):
     id = data['data']
     players.addPlayer(id)
-    print(players.cur_ids())
+    # print(players.cur_ids())
 
 
 @socketio.on('update_position')
@@ -44,7 +44,7 @@ def update_position(data):
     id = data['id']
     players.update_position(id, data)
 
-    players.print_all()
+    # players.print_all()
     emit('redraw', players.to_dict(), broadcast=True)
 
 

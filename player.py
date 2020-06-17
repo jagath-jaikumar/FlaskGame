@@ -45,7 +45,10 @@ class PlayerSet:
 
 
     def update_position(self,id, data):
-        self.ids[id].data = data
+        try:
+            self.ids[id].data = data
+        except:
+            pass #id does not exist yet
 
 class Player:
     def __init__(self, id, data = {}):
