@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+
+{% block content %}
+ <canvas id="myCanvas" width="1200" height="800" style="border: 1px solid black;"></canvas>
+
+
+
+
+
+
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
+<script type="text/javascript" charset="utf-8">
+    var socket = io();
+    var my_id = -1;
+
+
+    var all_players  = {};
+
+    socket = io.connect('http://' + document.domain + ':' + location.port + '/');
+    socket.on('connect', function() {
+        socket.emit('connect_request', {data: 'I\'m connected!'});
+    });
+
+    socket.on('id', function(data) {
+        my_id=data.id;
+      //  console.log(data);
+    });
+
+    socket.on('check_heartbeat', function(data) {
+        socket.emit('check_heartbeat',{data:my_id})
+    });
+
+    socket.on('redraw', function(data) {
+      all_players = data;
+        //console.log(data)
+    });
+
+    var canvas = document.getElementById('myCanvas');
+
+    var PositionY = canvas.height/2;
+    var PositionX = canvas.width/2;
+    var playerSpeedY = 0;
+    var playerSpeedX = 0;
+
+    var heading = 'north';
+    var moving = false;
+
+
+    var directionalSpeed = 5;
+
+    var boostMultiplier = 2;
+
+    document.onkeydown = keyDown;
+    document.onkeyup = keyUp;
+
+    function keyDown(e) {
+        switch(e.keyCode) {
+            case 38: // UP
+                playerSpeedY = -1; // moving!
+                break;
+
+            case 40: // DOWN
+                playerSpeedY = 1; // moving!
+                break;
+
+            case 37: // LEFT
+                playerSpeedX = -1; // moving!
+                break;
+
+            case 39: // RIGHT
+                playerSpeedX = 1; // moving!
+                break;
+
+            case 16: // RIGHT
+                directionalSpeed *= boostMultiplier; // boost!
+                break;
+            // other cases...
+        }
+    }
+
+    function keyUp(e) {
+        switch(e.keyCode) {
+            case 38: // UP
+                playerSpeedY = 0; // NOT moving!
+                break;
+
+            case 40: // DOWN
+                playerSpeedY = 0; // NOT moving!
+                break;
+
+            case 37: // UP
+                playerSpeedX = 0; // NOT moving!
+                break;
+
+            case 39: // DOWN
+                playerSpeedX = 0; // NOT moving!
+                break;
+
+            case 16: // DOWN
+                directionalSpeed /= boostMultiplier; // NO boost!
+                break;
+            // other cases...
+        }
+    }
+
+    // Whatever loop is called for each frame or game tick
+    function updateLoop() {
+      // rendering, updating, whatever, per frame
+      PositionY += (playerSpeedY * directionalSpeed);
+
+      if (PositionY > canvas.height){
+        PositionY = canvas.height;
+      }
+
+      if (PositionY < 0){
+        PositionY = 0;
+      }
+
+      PositionX += (playerSpeedX * directionalSpeed);
+
+      if (PositionX > canvas.width){
+        PositionX = canvas.width;
+      }
+
+      if (PositionX < 0){
+        PositionX = 0;
+      }
+
+      if (playerSpeedX === 0 && playerSpeedY === 0){
+        moving = false;
+      }
+      else {
+        moving = true;
+        if (playerSpeedX === 1 && playerSpeedY === -1){
+          heading = "north-east";
+        }
+        else if (playerSpeedX === 1 && playerSpeedY === 0){
+          heading = "east";
+        }
+        else if (playerSpeedX === 1 && playerSpeedY === 1){
+          heading = "south-east";
+        }
+        else if (playerSpeedX === 0 && playerSpeedY === 1){
+          heading = "south";
+        }
+        else if (playerSpeedX === -1 && playerSpeedY === 1){
+          heading = "south-west";
+        }
+        else if (playerSpeedX === -1 && playerSpeedY === 0){
+          heading = "west";
+        }
+        else if (playerSpeedX === -1 && playerSpeedY === -1){
+          heading = "north-west";
+        }
+        else { // if (playerSpeedX === 0 && playerSpeedY === -1){
+          heading = "north";
+        }
+      }
+
+      data = {
+        'id':my_id,
+        'playerX': PositionX,
+        'playerY': PositionY,
+        'moving':moving,
+        'heading':heading,
+      };
+      socket.emit('update_position', data);
+  //    console.log(PositionY)
+    }
+
+
+    function getSprite(mov,dir){
+      spriteDir = 'static/images/';
+
+      if (mov === false){
+        if (dir === 'north') {
+          return spriteDir + 'rocket-north-no.png';
+        } else if (dir === 'south'){
+          return spriteDir + 'rocket-south-no.png';
+        } else if (dir === 'east'){
+          return spriteDir + 'rocket-east-no.png';
+        } else if (dir === 'west'){
+          return spriteDir + 'rocket-west-no.png';
+        } else if (dir === 'north-west'){
+          return spriteDir + 'rocket-nw-no.png';
+        } else if (dir === 'north-east'){
+          return spriteDir + 'rocket-ne-no.png';
+        } else if (dir === 'south-west'){
+          return spriteDir + 'rocket-sw-no.png';
+        } else {//if (heading === 'west'){
+          return spriteDir + 'rocket-se-no.png';
+        }
+      }
+      else {
+        if (dir === 'north') {
+          return spriteDir + 'rocket-north-yes.png';
+        } else if (dir === 'south'){
+          return spriteDir + 'rocket-south-yes.png';
+        } else if (dir === 'east'){
+          return spriteDir + 'rocket-east-yes.png';
+        } else if (dir === 'west'){
+          return spriteDir + 'rocket-west-yes.png';
+        } else if (dir === 'north-west'){
+          return spriteDir + 'rocket-nw-yes.png';
+        } else if (dir === 'north-east'){
+          return spriteDir + 'rocket-ne-yes.png';
+        } else if (dir === 'south-west'){
+          return spriteDir + 'rocket-sw-yes.png';
+        } else {//if (heading === 'west'){
+          return spriteDir + 'rocket-se-yes.png';
+        }
+      }
+
+    }
+
+
+    function redraw() {
+      var canvas = document.getElementById('myCanvas');
+      var context = canvas.getContext('2d');
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (var key in all_players){
+        if (parseInt(key) === my_id){
+          drawing = new Image()
+          drawing.src = getSprite(all_players[key].moving, all_players[key].heading);
+          context.drawImage(drawing,all_players[key].playerX,all_players[key].playerY);
+        }
+        else {
+          drawing = new Image()
+          drawing.src = getSprite(all_players[key].moving, all_players[key].heading);
+          context.drawImage(drawing,all_players[key].playerX,all_players[key].playerY);
+        }
+      }
+    }
+
+    setInterval(onTimerTick, 10); // 33 milliseconds = ~ 30 frames per sec
+
+    function onTimerTick() {
+        updateLoop();
+        redraw()
+    }
+
+
+
+
+
+
+</script>
+
+
+{% endblock %}
